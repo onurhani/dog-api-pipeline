@@ -1,0 +1,32 @@
+# Minimal local Airflow setup with SequentialExecutor + SQLite
+# Production: swap SQLite for Postgres, SequentialExecutor for CeleryExecutor
+version: "3.8"
+
+services:
+  airflow:
+    image: apache/airflow:2.9.0-python3.11
+    environment:
+      AIRFLOW__CORE__EXECUTOR: SequentialExecutor
+      AIRFLOW__CORE__LOAD_EXAMPLES: "false"
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: sqlite:////opt/airflow/airflow.db
+      AIRFLOW__WEBSERVER__SECRET_KEY: "changeme-in-production"
+      # Inject Dog API key as env var (dlt reads it automatically)
+      SOURCES__DOG_API__API_KEY: "${DOG_API_KEY}"
+      # Skip the pre-flight DB check (DB doesn't exist yet on first boot)
+      CONNECTION_CHECK_MAX_COUNT: "0"
+      # Entrypoint will run airflow db migrate, create admin user, and pip-install dlt
+      _AIRFLOW_DB_MIGRATE: "1"
+      _AIRFLOW_WWW_USER_CREATE: "1"
+      _AIRFLOW_WWW_USER_PASSWORD: "admin"
+      _PIP_ADDITIONAL_REQUIREMENTS: "dlt[duckdb]"
+    volumes:
+      - ./dags:/opt/airflow/dags
+      - ./pipelines:/opt/airflow/pipelines
+      - ./logs:/opt/airflow/logs
+      - ./.dlt:/home/airflow/.dlt
+    ports:
+      - "8080:8080"
+    command:
+      - bash
+      - -c
+      - "airflow scheduler & exec airflow webserver"

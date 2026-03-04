@@ -1,0 +1,7 @@
+# Non-sensitive config. Commit to git.
+
+[sources.dog_api]
+page_limit = 25   # Dog API max = 100
+
+[runtime]
+log_level = "INFO"
